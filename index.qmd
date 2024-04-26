@@ -1,0 +1,15 @@
+---
+title: "r4ds 2e Solutions:"
+---
+
+Wrote these solutions as a personal project, so no guarantee to correctness.
+
+While solutions were published here:
+
+[https://mine-cetinkaya-rundel.github.io/r4ds-solutions/https://mine-cetinkaya-rundel.github.io/r4ds-solutions/](https://mine-cetinkaya-rundel.github.io/r4ds-solutions/)
+
+There are chapters left blank and I thought I would share my own attempts.
+
+\
+
+Thomas Mastri

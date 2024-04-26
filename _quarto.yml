@@ -1,0 +1,20 @@
+project:
+  type: website
+
+website:
+  title: "r4ds 2e Solutions:"
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - ch_11_solutions.qmd
+      - ch_12_solutions.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+editor: visual
+
