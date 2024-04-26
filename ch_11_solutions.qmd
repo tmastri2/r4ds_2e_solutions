@@ -2,7 +2,12 @@
 title: "Ch.11 Solutions"
 ---
 
-### Necessary Packages
+```{r}
+#| results: "asis"
+#| echo: false
+```
+
+## Prerequisites
 
 ------------------------------------------------------------------------
 
@@ -11,12 +16,9 @@ library(patchwork)
 library(tidyverse)
 ```
 
-\
+## 11.2.1 Exercises: {.unnumbered}
 
-## 11.2.1 Exercises:
-
-#### 1.
-
+1.  Notice how I use `\n` in the caption to help format it better.
 ```{r}
 mpg |> 
   ggplot(aes(cty, hwy)) +
@@ -40,9 +42,9 @@ mpg |>
   )
 ```
 
-Formal introduction to annotations is later in this chapter.
+2.  If you set color and shape to the same variable, ggplot will automatically make a single legend. If you choose 2 different variables, then it will make 2 legends to accommodate all the combinations. Also, you should note some values overlap in the plot, an improvement you can do is to jitter the values to make sure all values are appropriately visualized.
 
-#### 2.
+    -   Jitter function explained in this [r4ds section:](https://r4ds.hadley.nz/layers#position-adjustments) from chapter 9.
 
 ```{r}
 mpg |>  
@@ -56,15 +58,7 @@ mpg |>
   )
 ```
 
--   If you set color and shape to the same variable, ggplot will automatically make a single legend. If you choose 2 different variables, then it will make 2 legends to accommodate all the combinations.
-
--   You should note some values overlap in the plot, an improvement you can do is to jitter the values to make sure all values are appropriately visualized.
-
-    -   Jitter function explained in this [r4ds section:](https://r4ds.hadley.nz/layers#position-adjustments) from chapter 9.
-
-#### 3.
-
-Made a simple plot showing off the Lahman package in case you're a baseball stats nerd, but make your own plot.
+3.  Made a simple plot showing off the Lahman package in case you're a baseball stats nerd, but make your own plot.
 
 ```{r}
 library(Lahman)
@@ -82,13 +76,13 @@ Batting |>
   )
 ```
 
-\
+## 11.3.1 Exercises: {.unnumbered}
 
-\
+1.  Can read more about the nuances of hjust/vjust and other aesthetics by using the command: `vignette("ggplot2-specs")`
 
-## 11.3.1 Exercises:
+    -   vignettes are longer-form articles and in-depth explanations of packages.
 
-#### 1.
+    -   can see all vignettes in a package using the command: `vignette(package = package_name)`
 
 ```{r}
 
@@ -103,19 +97,10 @@ plot_1 <- mpg |>
   geom_text(label = 'bottom-left', x = -Inf, y = -Inf, hjust = 0, vjust = 0)
 ```
 
--   Can read more about the nuances of hjust/vjust and other aesthetics by using the command: `vignette("ggplot2-specs")`
-
-    -   vignettes are longer-form articles and in-depth explanations of packages.
-
-    -   can see all vignettes in a package using the command: `vignette(package = package_name)`
-
-#### 2.
-
--   Created 2 plots:
+2.  Created 2 plots:
 
     -   The first I just ball-parked by eye what I thought the center was.
-
-    -   The second I pull the ranges of the axes to find the true center point. To simplify this, you can manually set the limits to the original graph using `coord_cartesian`, but I thought this would be a fun exercise to extract some of the underlying data of a ggplot.
+    -   the second I pull the ranges of the axes to find the true center point. To simplify this, you can manually set the limits to the original graph using `coord_cartesian`, but I thought this would be a fun exercise to extract some of the underlying data of a ggplot.
 
 ```{r}
 plot_1 +
@@ -145,9 +130,7 @@ plot_1 +
   )
 ```
 
-#### 3.
-
-By default, if you facet after a geom_text call it will apply to all plots.
+3.  By default, if you facet after a geom_text call it will apply to all plots.
 
 ```{r}
 mpg_slice <- mpg |>  
@@ -175,29 +158,23 @@ mpg_slice |>
   facet_wrap(~drv)
 ```
 
-#### 4.
+4.  Can read the documentation for the geom_label() function for this information and more.
 
-Can read the documentation for the geom_label() function for this information and more.
+    -   **label.padding:** Changes the amount of white space around a label.
 
--   **label.padding:** Changes the amount of white space around a label.
+    -   **label.r:** Changes the roundness of label.
 
--   **label.r:** Changes the roundness of label.
+    -   **label.size**: Changes the size of the outline of the label.
 
--   **label.size**: Changes the size of the outline of the label.
+5.  The 4 arguments to arrow are:
 
-#### 5.
+    -   **angle:** Determines the width/sharpness of the arrow in degrees.
 
-#### The 4 arguments to arrow are:
+    -   **length:** determines the length of arrow head
 
--   **angle:** Determines the width/sharpness of the arrow in degrees.
+    -   **ends:** determines which ends of the line gets the arrow head ("last", "first" or "both")
 
--   **length:** determines the length of arrow head
-
--   **ends:** determines which ends of the line gets the arrow head ("last", "first" or "both")
-
--   **type:** Either "open" or "closed" triangle head.
-
-\
+    -   **type:** Either "open" or "closed" triangle head.
 
 Here is a plot showing how the arguments alter the arrow.
 
@@ -225,13 +202,9 @@ mpg |>
   ) 
 ```
 
-\
+## 11.4.6 Exercises: {.unnumbered}
 
-## 11.4.6 Exercises:
-
-#### 1.
-
-You need to use scale_fill_gradient in order to color in the plot. If you want to change the color of the plot using the geom_hex arguments, you want to use color, since the fill argument removes any gradient from the hexagons.
+1.  You need to use scale_fill_gradient in order to color in the plot. If you want to change the color of the plot using the geom_hex arguments, you want to use color, since the fill argument removes any gradient from the hexagons.
 
 ```{r}
 df <- tibble(
@@ -256,9 +229,7 @@ ggplot(df, aes(x, y)) +
 
 While this example is admittedly kind of conflicting; in general, use color for volume-less objects (points/lines) and the outline of shapes, while fill is used for coloring the internals of geometric objects.
 
-#### 2.
-
-The first argument for a scale is the name, which gets used as the axis or legend title. (To read the documentation for a function, use the command `?name_of_function`)
+2.  The first argument for a scale is the name, which gets used as the axis or legend title. (To read the documentation for a function, use the command `?name_of_function`)
 
 ```{r}
 mpg |> 
@@ -270,9 +241,7 @@ mpg |>
 
 While the output looks the same as labs, adding the name as an argument in the scale function overrides the value given to labs.
 
-\
-
-#### 3.
+3.  
 
 ```{r}
 presidential |>
@@ -289,7 +258,7 @@ presidential |>
 
 \
 
-#### 4.
+4.  
 
 ```{r}
 diamonds |> 
@@ -298,15 +267,9 @@ ggplot(aes(x = carat, y = price)) +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1) ) )
 ```
 
-\
+## 11.5.1 Exercises: {.unnumbered}
 
-\
-
-## 11.5.1 Exercises:
-
-#### 1.
-
-Make your own plot, decided to make 2 simple plots to show how a white graph background looks on a white webpage. (As influenced by footnote #2 in this chapter which explains why they chose a gray background for the default graph).
+1.  Make your own plot, decided to make 2 simple plots to show how a white graph background looks on a white webpage. (As influenced by footnote #2 in this chapter which explains why they chose a gray background for the default graph).
 
 ```{r}
 mpg_barplot <- mpg |> 
@@ -319,10 +282,7 @@ mpg_barplot +
   theme_classic()
 ```
 
-\
-\\
-
-#### 2.
+2.  
 
 ```{r}
 mpg_barplot +
@@ -333,21 +293,15 @@ mpg_barplot +
 
 \
 
-## 11.6.1 Exercises:
+## 11.6.1 Exercises: {.unnumbered}
 
-#### 1.
+1.  It's an order of operations issue, since `/` gets evaluated before `+` or `|`.
 
-It's an order of operations issue, since `/` gets evaluated before `+` or `|`.
+    -   Can read the documentation [here](https://patchwork.data-imaginist.com/articles/guides/assembly.html).
 
--   Can read the documentation [here](https://patchwork.data-imaginist.com/articles/guides/assembly.html).
+    -   If getting an error, make sure you have the patchwork package installed.
 
--   If getting an error, make sure you have the patchwork package installed.
-
-\
-
-#### 2.
-
-Use parentheses to override the default order of operations.
+2.  Use parentheses to override the default order of operations.
 
 ```{r}
 p1 <- ggplot(mpg, aes(x = displ, y = hwy)) + 
