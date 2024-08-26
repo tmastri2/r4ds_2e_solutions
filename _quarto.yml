@@ -9,12 +9,26 @@ website:
     contents:
       - ch_11_solutions.qmd
       - ch_12_solutions.qmd
+      - ch_13_solutions.qmd
+      - ch_14_solutions.qmd
+      - ch_15_solutions.qmd
+      - ch_16_solutions.qmd
+      - ch_17_solutions.qmd
+      - ch_18_solutions.qmd
+      - ch_19_solutions.qmd
+      - ch_20_solutions.qmd
+      - ch_21_solutions.qmd
+      - ch_22_solutions.qmd
+      - ch_23_solutions.qmd
+      - ch_25_solutions.qmd
+      - ch_26_solutions.qmd
+      - ch_27_solutions.qmd
+      - ch_28_solutions.qmd
 
 format:
   html:
-    theme: cosmo
+    theme: Cerulean
     css: styles.css
-    toc: true
 
 editor: visual
 
