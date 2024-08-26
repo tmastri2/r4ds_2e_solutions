@@ -1,0 +1,38 @@
+---
+title: "ch_18_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(nycflights13)
+```
+
+## 18.3.4 Exercises:
+
+1.  Whether a flight has the tail number recorded in planes is highly correlated with the carrier, with nearly all flights from MQ (Envoy Air) not having a tail number recorded. Interesting to note that Envoy Air is a subsidiary of AA, the other carrier with a high proportion of tail numbers missing.
+
+    ```{r}
+    tailnum_not_in_plane <- flights |> 
+      distinct(tailnum) |> 
+      anti_join(planes, by = 'tailnum') |> 
+      pull()
+
+    flights |> 
+      group_by(carrier) |> 
+      summarise(
+        number_of_flights = n(),
+        no_tail = sum(tailnum %in% tailnum_not_in_plane),
+        perc_no_tail = round(no_tail / (number_of_flights) *100, 2)
+      ) |> 
+      arrange(desc(number_of_flights))
+    ```

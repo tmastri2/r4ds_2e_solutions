@@ -1,0 +1,54 @@
+---
+title: "ch_21_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(DBI)
+library(tidyverse)
+```
+
+```{r}
+#| message: FALSE
+con <- DBI::dbConnect(duckdb::duckdb())
+dbplyr::copy_nycflights13(con)
+```
+
+```{r}
+flights <- tbl(con, "flights")
+```
+
+## 21.5.10 Exercises:
+
+1.  The equivalent of R's `distinct` function is the word `distinct` in the select statement. The equivalent of the `head`function for duckdb is LIMIT, but the syntax varies depending on the SQL version used.
+
+    ```{r}
+        flights |> 
+          distinct(tailnum) |> 
+          show_query()
+
+        flights |> 
+          head(5) |> 
+          show_query()
+    ```
+
+2.  The first query filters for rows where `dep_delay` is less than `arr_delay`, this can be thought of as flights that gained time after departing. The second query creates a column for miles per hour (since air_time is in minutes we need to divide by 60).
+
+    ```{r}
+    flights |> 
+      filter(dep_delay < arr_delay) |> 
+      show_query()
+
+    flights |> 
+      mutate(speed = distance / (air_time / 60)) |> 
+      show_query()
+    ```

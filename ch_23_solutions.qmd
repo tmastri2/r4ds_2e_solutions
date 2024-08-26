@@ -1,0 +1,193 @@
+---
+title: "ch_23_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(repurrrsive)
+library(jsonlite)
+```
+
+## 23.3.5 Exercises:
+
+1.  Need to supply `names_sep` argument to `unnest_wider`.
+
+    ```{r}
+    df2 <- tribble(
+      ~x, ~y,
+      1, list(11, 12, 13),
+      2, list(21),
+      3, list(31, 32),
+    )
+    ```
+
+    ```{r}
+    df2 |> 
+      unnest_wider(y, names_sep = '_')
+    ```
+
+2.  By default it will include a column of the element names. this can be suppressed with the `indices_include` argument.
+
+    ```{r}
+    df1 <- tribble(
+      ~x, ~y,
+      1, list(a = 11, b = 12),
+      2, list(a = 21, b = 22),
+      3, list(a = 31, b = 32),
+    )
+    ```
+
+    ```{r}
+    df1 |> 
+      unnest_longer(y, indices_include = FALSE)
+    ```
+
+3.  The issue with apply 2 `unnest_longer` calls is that it returns all combinations of row values (i.e. the cartesian product).
+
+    ```{r}
+    df4 <- tribble(
+      ~x, ~y, ~z,
+      "a", list("y-a-1", "y-a-2"), list("z-a-1", "z-a-2"),
+      "b", list("y-b-1", "y-b-2", "y-b-3"), list("z-b-1", "z-b-2", "z-b-3")
+    )
+    ```
+
+    ```{r}
+    df4 |> 
+      unnest_longer(y) |> 
+      unnest_longer(z)
+    ```
+
+    -   To get the ordered pairing of data, (e.g. the first value of y to the first value of z), you can supply a vector of columns to a single `unnest_longer` call. This property is seen in the "Examples" section of the documentation.
+
+    ```{r}
+    df4 |> 
+      unnest_longer(c(y, z))
+    ```
+
+## 23.4.4 Exercises:
+
+1.  I assume `gh_repos` was created the evening of October 25th 2016 or early October 26th. I looked to see when the last update was recorded in the data set, and since updates are roughly a daily occurrence, I assume the data set wasn't created on October 27th or later. Someone better than me at stats could probably apply a exponential distribution to find the expected next occurrence and consequently the likelihood the data set was created before that point.
+
+    ```{r}
+    repos <- tibble(gh_repos)
+      
+    repos |> 
+      unnest_longer(gh_repos) |> 
+      unnest_wider(gh_repos) |>   
+      mutate(update = as_date(updated_at)) |> 
+      count(update) |> 
+      arrange(desc(update))
+    ```
+
+2.  Distinct does seem to work with list columns. Granted, I would usually do the `unnest_wider` call first because then I have the flexibility to determine uniqueness using a subset of columns from the unnested owner in my `distinct` call.
+
+    ```{r}
+    repos |> 
+      unnest_longer(gh_repos) |> 
+      unnest_wider(gh_repos) |> 
+      select(owner) |> 
+      distinct() |> 
+      unnest_wider(owner)
+    ```
+
+3.  Definitely want to maintain the ID column in case you plan to join the data together.
+
+    ```{r}
+    chars <- tibble(json = got_chars)
+
+    aliases <- chars |> 
+      unnest_wider(json) |> 
+      select(id, aliases) |> 
+      unnest_longer(aliases) |> 
+      filter(aliases != '')
+
+    allegiances <- chars |> 
+      unnest_wider(json) |> 
+      select(id, allegiances) |> 
+      unnest_longer(allegiances)
+
+    books <- chars |> 
+      unnest_wider(json) |> 
+      select(id, books) |> 
+      unnest_longer(books)
+
+    tv_series <- chars |> 
+      unnest_wider(json) |> 
+      select(id, tvSeries) |> 
+      unnest_longer(tvSeries) |> 
+      filter(tvSeries != '')
+
+    aliases
+    allegiances
+    books
+    tv_series
+    ```
+
+4.  Using `pivot_longer` to split the data is usable in this case because all the list columns are unnamed and will require a `unnest_longer` call. If some of the lists are named, or to be more encompassing the lists will unnest to different width column-wise, then un-nesting simultaneously will not get you a fully populated matrix since some cells will not be populated.
+
+    ```{r}
+    tibble(json = got_chars) |> 
+      unnest_wider(json) |> 
+      select(id, where(is.list)) |> 
+      pivot_longer(
+        where(is.list), 
+        names_to = "name", 
+        values_to = "value"
+      )
+    ```
+
+5.  It is of mixed length since the addresses have different amounts of detail (e.g. some places have a county, some do not). I personally found it better to use `unnest_wider` with types since the two values seem to contain slightly different information and therefore better considered as it's own variable.
+
+    ```{r}
+    gmaps_cities |> 
+      unnest_wider(json) |> 
+      select(results) |> 
+      unnest_longer(results) |> 
+      unnest_wider(results) |> 
+      select(place_id, address_components) |> 
+      unnest_longer(address_components) |> 
+      unnest_wider(address_components) |> 
+      unnest_wider(types, names_sep = '_')
+    ```
+
+## 23.5.4 Exercises:
+
+1.  
+
+    ```{r}
+    #| echo: FALSE
+    json_col <- parse_json('
+      {
+        "x": ["a", "x", "z"],
+        "y": [10, null, 3]
+      }
+    ')
+    json_row <- parse_json('
+      [
+        {"x": "a", "y": 10},
+        {"x": "x", "y": null},
+        {"x": "z", "y": 3}
+      ]
+    ')
+
+    df_col <- tibble(col_json = list(json_col)) 
+    df_row <- tibble(row_json = json_row)
+    ```
+
+    ```{r}
+    df_col |> 
+      unnest_wider(col_json) |> 
+      unnest_longer(c(x, y))
+
+    df_row |> 
+      unnest_wider(row_json)
+    ```

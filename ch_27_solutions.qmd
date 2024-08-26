@@ -1,0 +1,85 @@
+---
+title: "ch_27_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+```{r}
+library(tidyverse)
+```
+
+## 27.2.4 Exercises:
+
+1.  All 3 parts below:
+
+    ```{r}
+    even_position <- function(vector) {
+      vector[seq(2, length(vector), 2)]
+    }
+    ```
+
+    ```{r}
+    cut_last_element <- function(vector) {
+      vector[-length(vector)]
+    }
+    ```
+
+    ```{r}
+    even_position_no_missing <- function(vector) {
+      vector[(vector %% 2 == 0 & !is.na(vector))]
+    }
+    ```
+
+2.  the `which` function only checks if true and does not coerce the vector to logical. This matters because the base R solution coerces NaN to the logical NA but the `which` function is able to return NaN.
+
+    ```{r}
+    vector_x <- c(10, NA, NaN)
+    ```
+
+    ```{r}
+    vector_x[-which(vector_x > 0)]
+    vector_x[vector_x <= 0]
+    ```
+
+## 27.3.4 Exercises:
+
+1.  Subsetting with `[[` with a positive integer out of bounds returns an error. Similarly, subsetting with \[\[ on a name that doesn't exist also returns an error. This is sensible because you are trying to extract a component of a vector which doesn't exist.
+
+    -   Can see in the example below that before drilling down into the component, the single bracket for names and integers out of range returns a sublist without a name, so consequently the double brackets have nothing to extract.
+
+    ```{r}
+    vector_y <- c(n1 = 'red', n2 = 'blue', n3 = 'green', n4= 'yellow')
+
+    str(vector_y[4])
+    str(vector_y[5])
+
+    str(vector_y['n4'])
+    str(vector_y['n5'])
+    ```
+
+2.  It depends on the type of the "pepper packet".
+
+    -   If the packet is a list, than \[ returns a list and \[\[ returns the component of the list.
+
+    -   If the packet is a vector, than \[ returns the first element and \[\[ also returns the element (since there is no outer structure to a vector).
+
+    ```{r}
+    pepper_1 <- list(
+      packet = list(1,2)
+    )
+
+    pepper_2 <- list(
+      packet = c(1,2)
+    )
+
+    str(pepper_1[[1]][1])
+    str(pepper_1[[1]][[1]])
+
+    str(pepper_2[[1]][1])
+    str(pepper_2[[1]][[1]])
+    ```

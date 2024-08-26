@@ -1,0 +1,241 @@
+---
+title: "Ch.13 Solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(nycflights13)
+```
+
+## 13.3.1 Exercises:
+
+1.  Code below:
+
+    ```{r}
+    flights |> 
+      count(is.na(dep_time))
+    ```
+
+2.  Documentation for `count` outlines how how it is analogous to using `group_by` and `summarize(n = n())`.
+
+    ```{r}
+    #1.
+    flights |> 
+      group_by(dest) |> 
+      summarise(n = n()) |> 
+      arrange(desc(n))
+
+    #2.
+    flights |> 
+      group_by(tailnum) |> 
+      summarise(wt = sum(distance))
+    ```
+
+## 13.4.8 Exercises:
+
+1.  Each line of the below code block represent one of the 7 lines used to create the plot.
+
+    ```{r}
+    #1. Pipes the dataset of interest to group_by
+
+    #2. Using integer division to get the hour from dep_time. This is necessary because sched_dep_time is coded like HHMM.
+
+    #3. Summarize function returns both the proportion of missing values and the count of flights that hour.
+
+    #4. Do this because there is only one value before hour 5 and it's at hour 1. Makes the plot much cleaner to remove it.
+
+    #5. Setting aesthetic globally since it will apply to both layers.
+
+    #6. Makes a line plot using the axes defined above. Also using a grey line is surprisingly much cleaner looking. (Run without that argument to see the difference, its much more than I expected.)
+
+    #7. Adds scatterpoints at the hour marks that are the size of the count at that hour.
+    ```
+
+2.  Can run `?Trig` to get the documentation on the different trig functions. By default they are in radians.
+
+3.  Issue is rooted in the fact that dep_time is coded as a numeric variable in flights while time in acutality is base-60 (e.g. 459 to 500 is a gap of one minute in flights, not 41). I decided to do minutes since midnight:
+
+    ```{r}
+    flights |> 
+      mutate(
+        dep_min_since_midnight = (dep_time %/% 100) * 60 + dep_time%%100,
+        sched_dep_min_since_midnight = (sched_dep_time %/% 100) * 60 + sched_dep_time%%100
+      ) |> 
+      select(
+        dep_time, 
+        dep_min_since_midnight, 
+        sched_dep_time, 
+        sched_dep_min_since_midnight
+      )
+    ```
+
+4.  A bit trickier, since if it rounds to a 60 minute increment you need to move to the next hour (e.g. you want 500 not 460).
+
+    ```{r}
+    flights |> 
+      mutate(
+        rounded_dep_time = if_else(
+        (round((dep_time / 5)) * 5) %% 100==60,
+        ceiling(dep_time / 100) * 100,
+        round((dep_time / 5)) * 5
+      )) |> 
+      select(dep_time, rounded_dep_time)
+    ```
+
+## 13.5.4 Exercises:
+
+1.  Different rank functions handle ties differently. For this questions I chose `min_rank` since it gives me a maximum of 10 rows (`dense_rank` may give more than 10 rows) and I personally find it more intuitive than `row_number` because I prefer ties to have the same ranking.
+
+    ```{r}
+    flights |> 
+     mutate(rank = min_rank(desc(dep_delay))) |> 
+      filter(rank <= 10)
+    ```
+
+2.  As an extension to my code below, could look into using other summary statistics (e.g. median) or ways to confirm the validity of my results (e.g. include the count of flights per tail or the distribution of delays to see if outliers could be misrepresenting the results).
+
+    ```{r}
+    flights |> 
+      group_by(tailnum) |> 
+      summarise(
+        avg_delay = mean(dep_delay, na.rm = TRUE)
+      ) |> 
+      mutate(most_delayed = min_rank(desc(avg_delay))) |> 
+      filter(most_delayed == 1)
+    ```
+
+3.  The fact that hour 5 and 23 have considerably less flights than other hours might make you question the significance of their result. As an extension, could include the standard deviation of delay to improve your results.
+
+    ```{r}
+    flights |> 
+      group_by(hour = sched_dep_time %/% 100) |> 
+      summarise(avg_delay = mean(is.na(dep_delay)), n=n()) |> 
+      mutate(min_rank = min_rank(desc(avg_delay))) |> 
+      arrange(avg_delay)
+    ```
+
+4.  Since you don't supply a vector row_number, the first expression will return the first 3 rows per destination as they appear in the data set. In the second expression you rank by dep_delay, so it will give the 3 flights per destination with the lowest delay.
+
+    ```{r}
+    flights |> group_by(dest) |> filter(row_number() < 4)
+    ```
+
+5.  \
+
+    ```{r}
+    flights |> 
+      group_by(dest, flight) |> 
+      summarise(flight_delay = sum(dep_delay)) |> 
+      mutate(dest_delay = sum(flight_delay, na.rm = TRUE)) 
+    ```
+
+    -   This works because group_by peels a "layer" off when I use a second mutate/summarise function. So my mutate call is working as if the data is group by dest only, not dest and flight.
+
+    -   An older blog about this phenomena [here](https://www.r-bloggers.com/2015/08/peeling-of-group-layers/).
+
+6.  \
+
+    ```{r}
+    # only the last 5 lines are added by me
+    library(ggpmisc)
+
+    flights |> 
+      mutate(hour = dep_time %/% 100) |> 
+      group_by(year, month, day, hour) |> 
+      summarize(
+        dep_delay = mean(dep_delay, na.rm = TRUE),
+        n = n(),
+        .groups = "drop"
+      ) |> 
+      filter(n > 5) |> 
+      mutate(previous_delay_lag = lag(dep_delay)) |>
+      ggplot(aes(dep_delay, previous_delay_lag))+
+      geom_point() +
+      stat_poly_line() +
+      stat_poly_eq()
+    ```
+
+    Used the ggpmisc package to quickly add a regression line with the R\^2. `geom_smooth()` can also make a regression line, but ggpmisc makes adding the R\^2 especially easy.
+
+7.  \
+
+    ```{r}
+    flights |> 
+      group_by(dest) |> 
+      mutate(mean_air = mean(air_time, na.rm = TRUE),
+             prop_air = air_time / mean_air * 100) |> 
+      select(dest, mean_air, prop_air) |> 
+      arrange(prop_air)
+    ```
+
+    The above table tells me that the fastest flight has an airtime that is 54% of the mean flight for that destination. While definitely quick, I don't consider this a data entry error given how many other flights also take up \~60% of the mean time.
+
+    To find the flights that were most delayed in the air, I am going to compare dep_delay to arr_delay.
+
+    ```{r}
+    flights |> 
+      mutate(air_delay = arr_delay - dep_delay) |> 
+      arrange(desc(air_delay)) |> 
+      select(flight, tailnum, air_delay, dep_delay, arr_delay)
+    ```
+
+    Again, nothing screams data entry error since I have personally been on flights spent taxiing due to gate issues.
+
+8.  
+
+    ```{r}
+    flights |> 
+      group_by(dest, carrier) |> 
+      summarise(avg_delay = mean(dep_delay, na.rm = TRUE), .groups = 'drop') |> 
+      mutate(
+        dest_rank = row_number(avg_delay),
+             count_carrier = n_distinct(carrier)
+      ) |> 
+      filter(count_carrier >= 2) |> 
+      select(dest, carrier, avg_delay, dest_rank) |> 
+      arrange(dest, dest_rank)
+    ```
+
+    Like exercise #5, I am using the "peel" of group_by so the summarize call is grouping by both dest and carrier while the mutate call is grouping by dest only.
+
+## 13.6.7 Exercises:
+
+1.  Lots of potential answers so just giving some aspects to consider:
+
+    1.  Can take arr_delay minus dep_delay to get the amount of air delay.
+    2.  mean vs. median depends on context. If you have a lot of outliers you should probably prefer median.
+    3.  can use `?planes` to read about the table. Would be useful if you want to see if plane age/speed has an effect on delay.
+    4.  the package also has a weather table. Could use to see if delay correlates with visibility or precipitation at a nearby weather station.
+
+2.  
+
+    ```{r}
+    flights |> 
+      mutate(air_speed = distance / air_time) |> 
+      group_by(dest) |> 
+      summarize(sd_speed = sd(air_speed, na.rm = TRUE)) |> 
+      arrange(desc(sd_speed))
+    ```
+
+    Curiously, both #1 and #2 in my data are in Oklahoma.
+
+3.  To see if airports move locations, I graphed the distance of the flights to EGE by month. Flights from both EWR and JFK seemed to have decreased a mile which makes me think the airport may have re-positioned the runways. (FYI reading the wikipedia page for Veil Airport, I am honestly not sure what caused the change in 2013).
+
+    ```{r}
+    flights |> 
+      filter(dest == 'EGE') |> 
+      group_by(month, origin) |> 
+      summarise(distance = mean(distance), .groups = 'drop') |> 
+      ggplot(aes(month, distance, color = origin)) +
+      geom_point()
+    ```

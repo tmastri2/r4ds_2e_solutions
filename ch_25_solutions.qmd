@@ -1,0 +1,173 @@
+---
+title: "ch_25_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(nycflights13)
+```
+
+## 25.2.2 Exercises:
+
+1.  I noticed all the function names in dplyr use snake care so that's the naming convention I use below. I used the `ls()` function to list objects within a package to get all the function names.
+
+    ```{r}
+    perc_na <- function(x) {
+      mean(is.na(x))
+    }
+
+    ratio_of_sum <- function(x) {
+      vector / sum(x, na.rm = TRUE)
+    }
+
+    perc_total <- function(x) {
+      round(vector / sum(x, na.rm = TRUE) * 100, 1)
+    }
+    ```
+
+2.  I had trouble finding a solution cleaner than a `case_when()` statement in the specific cases that x was equal to Inf or -Inf.
+
+    ```{r}
+    rescale01 <- function(x) {
+      x <- case_when(
+        x == Inf ~ 1,
+        x == -Inf ~ 0,
+        .default = x
+      )
+      
+      rng <- range(x, na.rm = TRUE, finite = TRUE)
+      (x - rng[1]) / (rng[2] - rng[1])
+    }
+    ```
+
+3.  I used an interval since it is suited for specific spans of time.
+
+    ```{r}
+    get_age <- function(birthbates) {
+      (birthdates %--% today()) %/% years(1)
+    }
+    ```
+
+4.  There are multiple definitions of skewness with similar intent. While the function `moments:skewness` used Pearson's moment coefficient of skewness (can check the source code of the function by using `moments:::skewness`) I used Pearson's second skewness coefficient because that was the formula I personally knew offhand.
+
+    ```{r}
+    variance <- function(vector) {
+      sum((x - mean(x))**2) / (length(x) - 1)
+    }
+
+    my_skewness <- function(vector) {
+      3 * (mean(x) - median(x)) / sqrt(variance(x))
+    }
+    ```
+
+5.  Wouldn't be surprised if you could come up with a more efficient way to write this.
+
+    ```{r}
+    sample_vector_1 <- c(NA, 1, 2, 3, NA)
+    sample_vector_2 <- c(NA, NA, 4, 5, NA)
+
+    both_na <- function(vector_1, vector_2) {
+      length(intersect(which(is.na(vector_1)), which(is.na(vector_2))))
+    }
+
+    both_na(sample_vector_1, sample_vector_2)
+    ```
+
+6.  The first function returns a vector of if the given files are directories. The second function returns if the given files are readable. Both functions are a bit niche but allow you to circumvent having to read the documentation of their "parent function."
+
+## 23.3.5 Exercises:
+
+1.  I personally find writing a function for this a bit strange, since it takes the data frame as an argument but the columns called are specific to only that data frame.
+
+    ```{r}
+    filter_severe <- function(df) {
+      df |> 
+        filter(is.na(arr_time) | arr_delay > 60)
+    }
+
+    flights |> filter_severe()
+    ```
+
+2.  
+
+    ```{r}
+    summarize_severe <- function(df) {
+      df |> 
+        summarise(
+          count_canceled = sum(is.na(arr_time), na.rm = TRUE),
+          count_delayed = sum(dep_delay > 60, na.rm = TRUE)
+        )
+    }
+
+    flights |> 
+      group_by(dest) |> 
+      summarize_severe()
+    ```
+
+3.  `dep_delay` is in minutes.
+
+    ```{r}
+    filter_severe <- function(df, hours) {
+      df |> 
+        filter(is.na(arr_time) | dep_delay > 60 * hours)
+    }
+    ```
+
+4.  By default, the mean function returns `NA` and a warning if given an invalid type. Regardless, I included my own warning to showcase how you can write it into a function.
+
+    ```{r}
+    summarize_weather <- function(df, variable) {
+      if (df |>  pull({{ variable }}) |> is.character())
+        warning('Wrong type yah nerd.')
+      
+      df |> 
+        summarise(
+        minimum = min({{ variable }}, na.rm = TRUE),
+        maximum = max({{ variable }}, na.rm = TRUE),
+        average = mean({{ variable }}, na.rm = TRUE)
+        )
+    }
+    ```
+
+    ```{r}
+    weather |> 
+      summarize_weather(temp)
+    ```
+
+    ```{r}
+    weather |> 
+      summarize_weather(origin)
+    ```
+
+5.  
+
+    ```{r}
+    standardize_time <- function(df, variable) {
+      df |> 
+        mutate({{ variable }} := round(({{  variable }} %/% 100 + {{ variable }} %% 100 /60), 2))
+    }
+
+    flights |> 
+    standardize_time(sched_dep_time)
+    ```
+
+    ```{r}
+    standardize_time <- function(df, variable) {
+      new_var_name = paste0(deparse(substitute(variable)), '_decimal_time')
+      
+      df |> 
+        mutate({{ new_var_name }} := round(({{ variable }} %/% 100 + {{ variable }} %% 100 /60), 2))
+    }
+
+    flights |> 
+    standardize_time(sched_dep_time) |> 
+      colnames()
+    ```

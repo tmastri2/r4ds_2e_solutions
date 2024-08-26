@@ -1,0 +1,134 @@
+---
+title: "Ch.14 Solutions"
+format: html
+editor: visual
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(babynames)
+```
+
+## 14.2.4 Exercises:
+
+1.  These can all be done using raw strings as well.
+
+    ```{r}
+    str_1 <- 'He said "That\'s amazing!"'
+    str_2 <- "\\a\\b\\c\\d"
+    str_3 <- "\\\\\\\\\\\\"
+
+    str_view(str_1)
+    str_view(str_2)
+    str_view(str_3)
+    ```
+
+2.  There is a Wikipedia page for this character [here](https://en.wikipedia.org/wiki/Non-breaking_space). It's a space that prevents an automatic line break.
+
+    ```{r}
+    x <- "This\u00a0is\u00a0tricky"
+    str_view(x)
+    x
+    ```
+
+## 14.3.4 Exercises:
+
+1.  Code below:
+
+    ```{r}
+    paste0("hi ", NA)
+    str_c("hi ", NA)
+    paste0(letters[1:2], letters[1:3])
+    #str_c(letters[1:2], letters[1:3]) This creates an error
+    ```
+
+    -   `str_c()` is less flexible with certain inputs. This trade-off in flexibility (infectious NA s and requiring same length strings) across the tidyverse limits possible unintended results.
+
+2.  `Paste0()` is a special case of paste where the separator between results is the empty string. Can recreate `paste()` with `str_c()` using the the sep argument.
+
+    ```{r}
+    str_c('x', 'y')
+    str_c('x', 'y', sep = ' ')
+    ```
+
+3.  Code below:
+
+    ```{r}
+    #1
+    food = 'hotdog'
+    price = 100
+    str_c("The price of ", food, " is ", price)
+    str_glue("the price of {food} is {price}")
+
+    #2
+    age = 12
+    country = 'Germany'
+    str_glue("I'm {age} years old and live in {country}")
+    str_c("I'm ", age, " years old and live in ", country)
+
+    #3
+    title = 'Fido'
+    str_c("\\section{", title, "}")
+    str_glue("\\\\section{{{title}}}")
+    ```
+
+## 14.5.3 Exercises:
+
+1.  the babyname dataset is not a row per baby but rather a row per name per year. Therefore we need to compute the sum of n and not the number of occurrences of n. (This is a good example why you should always read documentation and examine a dataset before attempting to pull information from it).
+
+2.  If the length was even I chose 2 characters instead of one.
+
+    ```{r}
+    babynames |> 
+      mutate(
+        middle = if_else(
+          str_length(name) %% 2 == 0,
+          str_sub(name, str_length(name) %/% 2, (str_length(name) %/% 2) + 1),
+          str_sub(name, str_length(name) %/% 2 + 1, (str_length(name) %/% 2) + 1)
+        )
+      ) |> 
+      select(name, middle)
+    ```
+
+3.  I decided to create a graph of average name length by year and popularity of first letter by year.
+
+    ```{r}
+    babynames |> 
+      group_by(year) |> 
+      summarise(
+        avg_len =weighted.mean(str_length(name), w = n)
+      ) |> 
+      ggplot(aes(year, avg_len)) + 
+      geom_smooth(method = 'loess', formula = 'y~x') +
+      labs(x = 'Year', 'Avg. Length')
+    ```
+
+    ```{r}
+    babynames |> 
+      mutate(first_letter = str_sub(name, 1, 1)) |> 
+      group_by(year, first_letter) |> 
+      summarise(
+        occurences = sum(n), 
+        .groups = 'drop_last'
+      ) |> 
+      mutate(
+        freq = occurences / sum(occurences)*100,
+        label = if_else(year == 2000, first_letter, NA)
+      ) |> 
+      ggplot(aes(year, freq, label = label)) +
+      geom_line()+
+      geom_label(nudge_y = 1, na.rm = TRUE) +
+      facet_wrap(~first_letter) +
+      labs(x = 'Year', y = 'Percentage of Year Total') +
+      theme(text = element_text(size = 10))
+    ```

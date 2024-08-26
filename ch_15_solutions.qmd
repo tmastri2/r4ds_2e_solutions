@@ -1,0 +1,253 @@
+---
+title: "Ch.15 Solutions"
+execute:
+  collapse: true
+format: html
+editor: visual
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(babynames)
+```
+
+## 15.3.5 Exercises:
+
+1.  I only considered AEIOU as vowels.
+
+    ```{r}
+    #| collapse: true
+    babynames |> 
+      distinct(name) |> 
+      mutate(
+        vowel_count = str_count(name, '[aeiou]')
+      ) |> 
+      filter(vowel_count == max(vowel_count))
+    ```
+
+    ```{r}
+    babynames |> 
+      distinct(name) |> 
+      mutate(
+        vowel_prop = round(str_count(name, '[aeiou]') / str_length(name) * 100, 2)
+      ) |> 
+      filter(vowel_prop == max(vowel_prop))
+    ```
+
+2.  The need for 4 consecutive backslashes is explained in the section "Escaping" of this chapter. Notice that I am printing the raw version of the string w/o visible escape characters.
+
+    ```{r}
+    example_string <- "a/b/c/d/e"
+    backslash_string <- str_replace_all(example_string, '/', '\\\\')
+    print(backslash_string)
+
+    str_view(backslash_string)
+
+    str_view(str_replace_all(backslash_string, '\\\\', '/'))
+    ```
+
+3.  letters and LETTERS are some of the built in constants of R. There are additional constants for month names, month abbreviations and digits of pi.
+
+    ```{r}
+    test_string <- 'Abraham lowercase UPPERCASE'
+    letter_vector <- setNames(letters,LETTERS)
+
+    str_replace_all(test_string, letter_vector)
+    ```
+
+4.  As an american who has cleaned my fair share of user inputted phone numbers, people will use multiple forms if not restricted (e.g. people may or may not include a country code, do you wrap the area code in parentheses). To keep it simple I will only look at the the format ###-###-#### using techniques discussed up to this point in the book.
+
+    ```{r}
+    example_numbers <- c('123-456-7890', '1234567890', '(123) 456-3456', '123---434-4454')
+    str_detect(example_numbers, '[0-9][0-9][0-9]-[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]')
+    ```
+
+    -   In the next section you will learn about escaping and character classes which allows you to match many other phone number formats.
+
+## 15.4.7 Exercises:
+
+1.  Used the raw string format we learned in chapter 14.
+
+    ```{r}
+    str_detect(r"["'\]",'\"\'\\\\')
+    str_detect(r"["$^$"]", '\"\\$\\^\\$\"')
+    ```
+
+2.  Regex expressions get handled by both the regex engine and the parser and both levels need to have an escape character preceding the backslash. Therefore, to have the regex engine receive \\\\, we need to send \\\\\\\\ to the parser. Thankfully if my explanation isn't sufficient this has been asked online a bunch of times.
+
+3.  For some of these I printed the number of matches to avoid printing large vectors.
+
+    -   Starts with Y:
+
+    ```{r}
+    words[str_detect(words, '^y')]
+    ```
+
+    -   Doesn't starts with Y:
+
+    ```{r}
+    length(words[str_detect(words, '^[^y]')])
+    ```
+
+    -   Ends with X:
+
+    ```{r}
+    words[str_detect(words, 'x$')]
+    ```
+
+    -   Are exactly 3 letters long:
+
+    ```{r}
+    words[str_detect(words, '\\b\\w{3}\\b')] |> 
+      length()
+    ```
+
+    -   Has 7 or more letters:
+
+    ```{r}
+    words[str_detect(words, '\\w{7}')] |> 
+      length()
+    ```
+
+    -   Contains a vowel-consonant pair:
+
+    ```{r}
+    words[str_detect(words, '[aeiou][^aeiou]')] |> 
+      length()
+    ```
+
+    -   Contains at least 2 vowel-consonant pairs in a row:
+
+    ```{r}
+    words[str_detect(words, '[aeiou][^aeiou][aeiou][^aeiou]')] |> 
+      length()
+    ```
+
+    -   Only consists of repeated vowel-consonant pairs:
+        -   I assume this meant the word goes vowel-consonant for the entire length of the word and not identical pairs each time.
+
+    ```{r}
+    words[str_detect(words, '\\b([aeiou][^aeiou]){1,}\\b')]
+    ```
+
+4.  I did most of these using the OR operator.
+
+    ```{r}
+    brit_american_words <- c('airplane', 'aeroplane',
+                             'aluminum', 'aluminium',
+                             'analog', 'analogue',
+                             'ass', 'arse',
+                             'center', 'centre',
+                             'defense', 'defence',
+                             'donut', 'doughnut',
+                             'gray', 'grey',
+                             'modeling', 'modelling',
+                             'skeptic', 'sceptic',
+                             'summarize', 'summarise')
+
+    brit_american_words[str_detect(brit_american_words, '(air|aero)plane')]
+
+    brit_american_words[str_detect(brit_american_words, 'alumini{0,1}um')]
+
+    brit_american_words[str_detect(brit_american_words, 'analo(que|g)')]
+
+    brit_american_words[str_detect(brit_american_words, '(ass|arse)')]
+
+    brit_american_words[str_detect(brit_american_words, 'cent(er|re)')]
+
+    brit_american_words[str_detect(brit_american_words, 'defen(c|s)e')]
+
+    brit_american_words[str_detect(brit_american_words, 'gr(a|e)y')]
+
+    brit_american_words[str_detect(brit_american_words, '(do|dough)nut')]
+
+    brit_american_words[str_detect(brit_american_words, 'model{1,2}ing')]
+
+    brit_american_words[str_detect(brit_american_words, 's(c|k)eptic')]
+
+    brit_american_words[str_detect(brit_american_words, 'summari(s|z)e')]
+    ```
+
+5.  `str_replace()` allows you to use groups as a replacement. Make sure your regex contains the word "a", for some of my earlier attempts at this problem did not work with words of length 1.
+
+    ```{r}
+    words[str_replace(words, '(^.)(.*)(.$)','\\3\\2\\1') %in% words]
+    ```
+
+6.  Make sure to keep in mind that in order to match it only has to contain the relevant expression once and the string could contain more than what gets matched. e.g. in part f the expression `fffg` is a valid match.
+
+    a\. matches any character string.
+
+    b\. Matches strings with curly brackets around 1 or more characters.
+
+    c\. matches 4 digits, then 2 pairs of 2 digits separated by hyphens. e.g. `1234-56-78.`
+
+    d\. Matches strings with at least 4 backslashes in a row.
+
+    e\. Matches a period, any character, period, any character, period, any character.
+
+    f\. Matches the same character three times a row.
+
+    g, Matches 2 characters that repeat once e.g. coco
+
+## 15.6.4 Exercises:
+
+1.  I personally find multiple `str_detect()` calls more readable in all these cases.
+
+    ```{r}
+    words[str_detect(words, '(^x.*|.*x$)')]
+    words[str_detect(words, '^x') | str_detect(words, 'x$')]
+    ```
+
+    ```{r}
+    length(words[str_detect(words, '^[aeiou].*[^aeiou]$')])
+
+    length(words[str_detect(words, '^[aeiou]') & str_detect(words, '[^aeiou]$')])
+    ```
+
+    ```{r}
+    words <- append(words, 'facetious')
+
+    words[str_detect(words, '\\b(?=[a-z]*?a)(?=[a-z]*?e)(?=[a-z]*?i)(?=[a-z]*?o)(?=[a-z]*?u)')]
+
+    words[
+      str_detect(words, "a") &
+      str_detect(words, "e") &
+      str_detect(words, "i") &
+      str_detect(words, "o") &
+      str_detect(words, "u")
+    ]
+    ```
+
+2.  For such a well known phrase, it's pretty astounding how many counter examples it has.
+
+    ```{r}
+    words[str_detect(words, '[^c]ie') | str_detect(words, 'cei')]
+
+    words[str_detect(words, 'cie') | str_detect(words, '.*[^c]ei')]
+    ```
+
+3.  I did this by creating a regex group that extracts the leading characters of a color if the name contains another color in the list.
+
+    ```{r}
+    colors <- colors()
+
+    unique(str_match(colors, str_c('(.+)(', str_flatten(colors, '|'), ')'))[,2])
+    ```
+
+4.  I pulled anything before the first space since a review of the data told me a space is used to precede the grouping data frame.
+
+    ```{r}
+    str_match(data(package = "datasets")$results[, "Item"], '\\S*') |> 
+      length()
+    ```

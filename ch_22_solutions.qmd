@@ -1,0 +1,61 @@
+---
+title: "ch_22_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(arrow)
+```
+
+```{r}
+pq_path <- "../R-notes/Ch.22 Apache Arrow/data/seattle-library-checkouts"
+seattle_pq <- open_dataset(pq_path)
+```
+
+## 22.5.3 Exercises:
+
+1.  By converting to a DuckDB table I am able to use the slice_max function.
+
+    -   `slice_max` has an argument to specify if you want ties or not, but if you code this question with an `arrange` then `slice` call you are without ties, and on the other hand you use `filter(x == max(x))` you are getting ties.
+
+    ```{r}
+    seattle_pq |> 
+      to_duckdb() |> 
+      filter(MaterialType == "BOOK", Title != '<Unknown Title>') |>
+      group_by(CheckoutYear, Title) |>
+      summarize(TotalCheckouts = sum(Checkouts, na.rm = TRUE), .groups = 'drop_last') |>
+      slice_max(TotalCheckouts, n = 1) |> 
+      collect()
+    ```
+
+2.  I interpreted this question to mean unique versions in the system, and therefore I took unique ISBNs in the system. If you interpret this question to mean most books (including duplicates) or most titles you will get different results.
+
+    ```{r}
+    seattle_pq |> 
+      filter(MaterialType == "BOOK", Title != '<Unknown Title>') |>
+      group_by(Creator) |>
+      summarize(TotalBooks = n_distinct(ISBN)) |>
+      arrange(desc(TotalBooks)) |> 
+      collect()
+    ```
+
+3.  Notice that I use the `collect` function before the ggplot call so it would take a dataframe as an input. It returns an error otherwise.
+
+    ```{r}
+    seattle_pq |> 
+      filter(MaterialType %in% c('BOOK', 'EBOOK')) |> 
+      group_by(MaterialType, CheckoutYear) |> 
+      summarize(TotalCheckouts = sum(Checkouts), .groups = 'drop') |> 
+      arrange(CheckoutYear) |> 
+      collect() |> 
+      ggplot(aes(CheckoutYear, TotalCheckouts, fill = MaterialType)) +
+      geom_bar(stat = 'identity', position = 'dodge')
+    ```

@@ -1,0 +1,83 @@
+---
+title: "ch_26_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(nycflights13)
+```
+
+## 26.2.8 Exercises:
+
+1.  Parts 1-3 below:
+
+    ```{r}
+    palmerpenguins::penguins |> 
+      summarise(across(everything(), n_distinct))
+    ```
+
+    ```{r}
+    mtcars |> 
+      summarise(across(everything(), mean))
+    ```
+
+    ```{r}
+    diamonds |> 
+      group_by(cut, clarity, color) |> 
+      summarise(
+        n = n(),
+        across(where(is.numeric), mean),
+        .groups = 'drop'
+      )
+    ```
+
+2.  It just appends \_1, \_2, \_3 etc. to the end of the name. This is quite unreadable, especially if you don't have access to the code.
+
+    ```{r}
+    diamonds |> 
+      summarise(
+        across(where(is.numeric), list(mean, median))
+      )
+    ```
+
+3.  the `.keep` argument to `mutate` determines what columns are maintained after mutating a column. The way I wrote this function doesn't require embracing since I am not taking columns as an argument. A more flexible function, such as one that allows the user to define the columns to keep/remove, would likely require embracing.
+
+    ```{r}
+    expand_dates <- function(df) {
+      df |> 
+        mutate(
+          across(where(is.Date), list(year = year, month = month, day = mday)),
+          .keep = 'unused'
+        )
+    }
+
+    df_date <- tibble(
+      name = c("Amy", "Bob"),
+      date = ymd(c("2009-08-03", "2010-01-16"))
+    )
+
+    expand_dates(df_date)
+    ```
+
+4.  To keep the summary short, the function outputs the count of NAs for each combination of user submitted variables for columns that have at least one NA. The special feature of `where` (as described in the documentation) is its ability to take purrr-like formulas. The logic of the `where` function in this function reminds me of a `HAVING` statement in a SQL query, which is used to filtered data post-aggregation.
+
+    ```{r}
+    show_missing <- function(df, group_vars, summary_vars = everything()) {
+      df |> 
+        group_by(pick({{ group_vars }})) |> 
+        summarize(
+          across({{ summary_vars }}, \(x) sum(is.na(x))),
+          .groups = "drop"
+        ) |>
+        select(where(\(x) any(x > 0)))
+    }
+    nycflights13::flights |> show_missing(c(year, month, day))
+    ```

@@ -1,0 +1,217 @@
+---
+title: "ch_17_solutions"
+execute:
+  collapse: true
+format: html
+editor: visual
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(nycflights13)
+```
+
+## 17.2.5 Exercises:
+
+1.  Returns an NA value and gives a warning message with the number of elements to fail.
+
+2.  It determines the timezone to be used when returning the date. By default it will use your computer system's timezone.
+
+3.  Code below.
+
+    ```{r}
+    d1 <- "January 1, 2010"
+    parse_date(d1, '%B %d, %Y')
+    mdy(d1)
+
+    d2 <- "2015-Mar-07"
+    parse_date(d2, '%Y-%b-%e')
+    ymd(d2)
+
+    d3 <- "06-Jun-2017"
+    parse_date(d3, '%e-%b-%Y')
+    dmy(d3)
+
+    d4 <- c("August 19 (2015)", "July 1 (2015)")
+    parse_date(d4, '%B %d (%Y)')
+    mdy(d4)
+
+    d5 <- "12/30/14" # Dec 30, 2014
+    parse_date(d5, '%m/%e/%y')
+    mdy(d5)
+
+    t1 <- "1705"
+    parse_time(t1, '%H%M')
+    hm(paste0(substr(t1, 1, 2), ':', substr(t1, 3, 5)))
+    #had trouble using lubridate w/o modifying the string to include a colon.
+
+    t2 <- "11:15:10.12 PM"
+    parse_time(t2, '%I:%M:%OS %p')
+    hms(t2)
+    ```
+
+## 17.3.4 Exercises:
+
+For these exercises I used a modified version of the `flights_dt` data set used throughout the chapter. As partially discussed in section 17.4.2, the year, month, day component of flights refers only to the day of departure and not the schedule date nor the arrival date so I created a data set using periods and the delays to circumvent that issue.
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights <- flights |> 
+  mutate(id = row_number())
+
+flights_datetime <- flights |> 
+  filter(!is.na(dep_time), !is.na(arr_time)) |> 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time),
+    arr_time = if_else(make_datetime_100(year, month, day, arr_time) < dep_time,  
+                       make_datetime_100(year, month, day, arr_time) + days(1),
+                       make_datetime_100(year, month, day, arr_time)),
+    sched_dep_time = dep_time - minutes(dep_delay),
+    sched_arr_time = arr_time - minutes(arr_delay)
+  )
+```
+
+To confirm the accuracy of my transformations, I pull the HHMM of my modified `arr_time`, `sched_dep_time` and `sched_arr_time` times to see if it matched the original values. A weird quirk I found is that flights listed midnight as 2400 as opposed to 0, hence the modular divisor I used in my filter below.
+
+```{r}
+flights_datetime |> 
+  inner_join(flights, by = join_by('id')) |> 
+  filter(
+    ((hour(arr_time.x) * 100 + minute(arr_time.x)) != arr_time.y %% 2400) |
+    ((hour(sched_dep_time.x) * 100 + minute(sched_dep_time.x)) != sched_dep_time.y %% 2400) |
+    ((hour(sched_arr_time.x) * 100 + minute(sched_arr_time.x)) != sched_arr_time.y %% 2400) 
+  )
+```
+
+1.  Lots of ways to approach this question, I decided to create a frequency plot split by quarter to see if there was a visual trend. While I didn't find anything apparent, some candidates for future analysis:
+
+    -   See if there is a difference in a month-by-month or week-by-week grouping. Going to be a noisy plot, but setting an alpha-level to the plot or just viewing the distribution of summary statistics (mean etc.) might make it more manageable.
+
+    -   See if the mean flight time changes over the course of the year.
+
+    ```{r}
+    flights_datetime |> 
+      mutate(
+        dep_hour = hms::as_hms(dep_time - floor_date(dep_time, "day")),
+        dep_quarter = as.character(quarter(dep_time))
+      ) |> 
+      ggplot(aes(x = dep_hour, color = dep_quarter)) +
+      geom_freqpoly(binwidth = 60 * 30)
+
+    ```
+
+2.  I somewhat tested this earlier when I confirmed my `flights_ datetime` data set matches the original data set.
+
+    ```{r}
+    make_datetime_100 <- function(year, month, day, time) {
+      make_datetime(year, month, day, time %/% 100, time %% 100)
+    }
+
+    flights_datetime |> 
+      filter(dep_time - sched_dep_time != minutes(dep_delay))
+
+    flights_datetime |> 
+      mutate(diff = dep_time - sched_dep_time)
+    ```
+
+3.  Code below:
+
+    ```{r}
+    flights_datetime |> 
+      mutate(
+        dep_arr_diff = as.duration(arr_time -  dep_time),
+        air_time = dminutes(air_time)
+      ) |> 
+      select(dep_time, arr_time, dep_arr_diff, air_time)
+    ```
+
+    Airtime can be greater than or less than the difference between departure time and arrival time, this isn't an error since flights across time zones will have an effect on timestamps but not the length of time spent in the air.
+
+4.  I would use sched_dep_time since that is when the delay starts.
+
+    ```{r}
+    flights_datetime |> 
+      mutate(
+        dep_hour = hms::as_hms(sched_dep_time - floor_date(sched_dep_time, "day"))
+      ) |>
+      ggplot(aes(x = dep_hour, y = dep_delay)) +
+      geom_smooth()
+    ```
+
+5.  Since we are looking at only 7 options, I personally find a table more readable.
+
+    ```{r}
+    flights_datetime |> 
+      mutate(wday = wday(dep_time, label = TRUE)) |> 
+      group_by(wday) |> 
+      summarize(
+        prop_delay = mean(dep_delay > 0),
+        total_flights = n()
+      )
+    ```
+
+    -   To minimize the chance of any delay, Saturday looks best (also notice that it has less flights than the other days). As an extension of this problem, you may want to see the average delay by day and the chance of a severe delay.
+
+6.  Both have an increased frequency at round numbers. Can look at Section 10.3.1 and 17.3.1 of the book to see examples of a similar trend in the diamonds and flights dataset respectively.
+
+7.  My plot shows that flights that were delayed are more uniform across the hour while flights that left early are more likely to leave early between the 20-30 and 50-60 minute range.
+
+    ```{r}
+    flights_datetime |> 
+      mutate(
+        delayed = if_else(dep_delay>0, TRUE,FALSE),
+        dep_minute = minute(hms::as_hms((dep_time - floor_date(dep_time, "hour"))))
+      )|> 
+      ggplot(aes(dep_minute))+
+      geom_histogram(bins = 60) +
+      facet_wrap(~delayed) +
+      labs(title = 'Plot faceted by if dep_delay > 0')
+    ```
+
+## 17.4.4:
+
+1.  Logical vectors will automatically be coerced to a 1 (TRUE) or 0 (FALSE) if a numerical value is expected. Therefore `days(overnight)` will return `days(0)` if FALSE or `days(1)` if TRUE.
+
+2.  Notice I start with month 0 to make sure I include the original date.
+
+    ```{r}
+    first_day <- ymd('2015-01-01')
+    first_day + months(0:11)
+
+    floor_date(today(), 'year') + months(0:11)
+    ```
+
+3.  I made sure to use an interval for this problem even though I admittedly had trouble thinking of a specific scenario where a duration-based function would give a different result.
+
+    ```{r}
+    birthday_function <- function(birthday) {
+      (birthday %--% today()) %/% years(1)
+    }
+    birthday_function(ymd('2023-07-07 00:00:00'))
+    ```
+
+4.  While the expression does work without error most of the time, the numerator doesn't work since adding a year returns null if the date created is invalid (such as in leap years).
+
+    ```{r}
+    (today() %--% (today() + years(1))) / months(1)
+    (as_date('2024-02-29') %--% (as_date('2024-02-29') + years(1))) %/% months(1)
+    ```
+
+    -   Also, reading the vignette [here](https://lubridate.tidyverse.org/articles/lubridate.html), you can see it's recommended to use integer division since the result is more intuitive.
+
+    ```{r}
+    (as_date('2024-02-28') %--% (as_date('2024-02-28') + years(1))) %/% months(1)
+    ```

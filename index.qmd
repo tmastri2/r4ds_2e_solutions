@@ -2,14 +2,12 @@
 title: "r4ds 2e Solutions:"
 ---
 
-Wrote these solutions as a personal project, so no guarantee to correctness.
+While official solutions were published [here](https://mine-cetinkaya-rundel.github.io/r4ds-solutions/), there are chapters left blank and I thought I would share my own attempts. This was done as a personal project, and I would expect this to be less a source of truth than a guide for others who might also be self-studying this textbook.
 
-While solutions were published here:
-
-[https://mine-cetinkaya-rundel.github.io/r4ds-solutions/https://mine-cetinkaya-rundel.github.io/r4ds-solutions/](https://mine-cetinkaya-rundel.github.io/r4ds-solutions/)
-
-There are chapters left blank and I thought I would share my own attempts.
-
-\
+If I have errors or my answer isn't sufficient, I noticed there are solutions posted elsewhere for the majority of the exercises included here.\
 
 Thomas Mastri
+
+**Email:** thomasalexm22\@gmail.com
+
+-   (please reach out if you notice errors or have questions)

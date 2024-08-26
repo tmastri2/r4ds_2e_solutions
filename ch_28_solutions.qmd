@@ -1,0 +1,7 @@
+---
+title: "ch_28_solutions"
+---
+
+::: callout-note
+While this chapter has exercises, because I think quarto documentation is pretty encompassing and there is more personalization for these exercises, I am not writing my solutions.
+:::

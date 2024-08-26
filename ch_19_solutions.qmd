@@ -1,0 +1,177 @@
+---
+title: "ch_19_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(nycflights13)
+```
+
+## 19.2.4 Exercises:
+
+1.  We can use origin from weather to join with faa from airports.
+
+2.  We would then be able to connect it to destination. It is not currently a key since many values would not have a match.
+
+3.  It is the hour when clocks were rolled back to standard time after daylight savings.
+
+    ```{r}
+    weather |> 
+      count(year, month, day, hour, origin) |> 
+      arrange(desc(n))
+    ```
+
+## 19.3.4 Exercises:
+
+1.  I used base R's `summary` function to quickly give me a reference point for what constitutes a high/low value during the 2 worst days.
+
+    ```{r}
+    worst_2_days <- flights |> 
+      left_join(weather |> select(origin, time_hour, temp, wind_speed, visib, precip)) |> 
+      group_by(year, month, day) |> 
+      summarise(
+        dep_delay = mean(dep_delay, na.rm = TRUE),
+        n = n(),
+        avg_wind = mean(wind_speed, na.rm = TRUE),
+        avg_vis = mean(visib, na.rm = TRUE),
+        avg_precip = mean(precip, na.rm = TRUE),
+        .groups = 'drop'
+      )
+
+    worst_2_days |> 
+      top_n(2, dep_delay)
+
+    worst_2_days |> 
+      summary()
+    ```
+
+    -   The days with the highest delays had high levels of precipitation and wind while lower levels of visibility.
+
+2.  Joining a data set onto a transformation of itself is very handy whenever you want to add group statistics to the original data set.
+
+    ```{r}
+    flights2 <- flights |> 
+      mutate(id = row_number(), .before = 1)
+
+    top_dest <- flights2 |>
+      count(dest, sort = TRUE) |>
+      head(10)
+
+    top_dest |>
+      inner_join(flights, join_by(dest == dest))
+    ```
+
+3.  Surprisingly not, my speculation is that it's probably maintenance or downtime of the sensors but I couldn't find any pattern for which hours are missing.
+
+    ```{r}
+    flights |> 
+      anti_join(weather, join_by(origin, time_hour)) |> 
+      count(time_hour)
+    ```
+
+4.  Notice that for my grid of plots I specify columns that are character, this is because geom_bar won't work with numeric data. From this you can see that 3 carriers, 9E, UA and US have the majority of missing tail numbers.
+
+    ```{r}
+    flights |> 
+      anti_join(planes, join_by(tailnum)) |> 
+      filter(!is.na(tailnum)) |> 
+      select(-tailnum) |> 
+      pivot_longer(where(is.character)) |> 
+      ggplot(aes(value)) +
+      geom_bar() +
+      facet_wrap(~name, scales = 'free_x')
+
+    flights |> 
+      anti_join(planes, join_by(tailnum)) |> 
+      filter(!is.na(tailnum)) |> 
+      count(carrier)
+    ```
+
+5.  There are some planes that have flown for multiple carriers, making you reject the hypothesis that every tailnum has a single carrier. this is admittedly a rare occurence, since only 2 combinations of carrier ever share a plane (9E/EV, FL/DL) .
+
+    ```{r}
+    planes |> 
+      inner_join(flights[c('tailnum', 'carrier')], join_by(tailnum)) |> 
+      group_by(tailnum) |> 
+      summarise(
+        carriers = paste(unique(carrier), collapse = ', '),
+        number_carriers = n_distinct(carrier),
+        flights = n()
+      ) |> 
+      arrange(desc(number_carriers))
+    ```
+
+6.  I personally found it easier to rename the columns using the `suffix` argument in the join function. Otherwise I prefer to rename columns before joining since I think it's easy to mix up columns when they have a generic name.
+
+    ```{r}
+    airport_loc <- airports |> 
+      select(faa, lon, lat)
+
+
+
+    flights |> 
+      select(origin, dest) |> 
+      left_join(airport_loc, join_by(origin == faa)) |> 
+      left_join(airport_loc, join_by(dest == faa), suffix = c('_origin', '_dest'))
+    ```
+
+7.  Used the viridis color scales which give me a few colorful options out of the box.
+
+    ```{r}
+    flights |>
+      group_by(dest) |> 
+      summarise(avg_delay = mean(dep_delay, na.rm = TRUE)) |>
+      ungroup() |> 
+      inner_join(airports, join_by(dest == faa)) |>
+      ggplot(aes(x = lon, y = lat, color = avg_delay)) +
+        scale_colour_viridis_c() +
+        borders("state") +
+        geom_point() +
+        coord_quickmap()
+    ```
+
+8.  Can get storm reports for that date [here](https://www.spc.noaa.gov/exper/archive/event.php?date=20130613). The high delays in East Tennessee's airport are explained the high amount of storms on that date in and around Virginia.
+
+    ```{r}
+    flights |>
+      filter(year == 2013, month == 6, day == 13) |> 
+      group_by(dest) |> 
+      summarise(avg_delay = mean(dep_delay, na.rm = TRUE)) |>
+      ungroup() |> 
+      inner_join(airports, join_by(dest == faa)) |>
+      ggplot(aes(x = lon, y = lat, color = avg_delay)) +
+        scale_colour_viridis_c(option = 'turbo') +
+        borders("state") +
+        geom_point() +
+        coord_quickmap()
+    ```
+
+## 19.5.5 Exercises:
+
+1.  By default it retains key columns from x only. If `keep=TRUE` then we include all keys, and therefore a column for both X and Y keys.
+
+2.  It includes all rows since a value will overlap with itself. The simplest way to avoid this is to rewrite so an id can't equal itself.
+
+    ```{r}
+    #Showing what happens w/o q < q
+    parties <- tibble(
+      q = 1:4,
+      party = ymd(c("2022-01-10", "2022-04-04", "2022-07-11", "2022-10-03")),
+      start = ymd(c("2022-01-01", "2022-04-04", "2022-07-11", "2022-10-03")),
+      end = ymd(c("2022-04-03", "2022-07-11", "2022-10-02", "2022-12-31"))
+    )
+
+    parties |> 
+      inner_join(parties, join_by(overlaps(start, end, start, end))) |> 
+      select(start.x, end.x, start.y, end.y)
+    ```

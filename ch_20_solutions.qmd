@@ -1,0 +1,136 @@
+---
+title: "ch_20_solutions"
+---
+
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites:
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(readxl)
+library(tidyverse)
+library(writexl)
+library(openxlsx)
+library(googlesheets4)
+```
+
+::: callout-note
+File path argument will depend on where the file is saved to your specific system.
+:::
+
+## 20.2.9 Exercises:
+
+1.  To clean the data I used the methods discussed in section 20.2.3:
+
+    ```{r}
+    read_xlsx(
+      'Excel Sheets/survey.xlsx', 
+      col_types = c('text', 'text'),
+      na = c('N/A', '')
+    ) |> 
+      mutate(
+        n_pets = if_else(n_pets == "two", "2", n_pets),
+        n_pets = parse_number(n_pets)
+      )
+    ```
+
+2.  `fill()` function is originally discussed in section 18.2.1.
+
+    ```{r}
+    read_xlsx('Excel Sheets/roster.xlsx') |> 
+      fill(group, subgroup)
+    ```
+
+3.  I will admit there is probably a more concise way to do this.
+
+    ```{r}
+    #a.
+    sales <- read_xlsx('Excel Sheets/sales.xlsx', col_names = c('id', 'n'), skip = 4)
+    sales
+
+    #b.
+    brand_1_fixed <- sales |> 
+      slice_head(n = 4) |> 
+      janitor::row_to_names(row_number = 1) |>
+      pivot_longer(cols = `Brand 1`, names_to = 'Brand', values_to = 'id')
+      
+    brand_2_fixed <- sales |>
+      slice_tail(n = 5) |>
+      janitor::row_to_names(row_number = 1) |>
+      pivot_longer(cols = `Brand 2`, names_to = 'Brand', values_to = 'id')
+
+    bind_rows(brand_1_fixed, brand_2_fixed) |> 
+      mutate(
+        id = as.numeric(id),
+        n = as.numeric(n)
+      )
+    ```
+
+4.  You must supply your own file path to `write.xlsx`.
+
+    ```{r}
+    bake_sale <- tibble(
+      item     = factor(c("brownie", "cupcake", "cookie")),
+      quantity = c(10, 5, 8)
+    )
+
+    write.xlsx(bake_sale, "file_path")
+    ```
+
+5.  I used another janitor function, `row_to_names`, in my solution for #3 of this section.
+
+    ```{r}
+    students <- read_xlsx('Excel Sheets/students.xlsx')
+
+    students |> 
+      janitor::clean_names()
+    ```
+
+6.  It returns an error that it cannot open the file. XLS is a completely different format at its core so the functions cannot be used interchangeably.
+
+## 20.3.6 Exercises:
+
+1.  Only different I saw was that the AGE column was interpreted as a list when read from the Google Sheet. This is an easy fix using the `col_types` argument.
+
+    ```{r}
+    #| message: FALSE
+    gs4_deauth()
+    ```
+
+    ```{r}
+    student_excel <- read_xlsx('Excel Sheets/students.xlsx')
+
+    students_sheet_id <- '1V1nPp1tzOuutXFLb3G9Eyxi3qxeEhnOXUzL5_BcCQ0w'
+    student_sheet <- read_sheet(students_sheet_id)
+    student_excel
+
+    student_sheet
+    ```
+
+2.  Similar to Exercise #1 from section 20.2.9, I read in as a character so I can change the 'two' value to a numeric 2.
+
+    ```{r}
+    survey_sheet_id <- '1yc5gL-a2OOBr8M7B3IsDNX5uR17vBHOyWZq6xSTG2G8'
+    survey_sheet <- read_sheet(survey_sheet_id, col_types = 'cc', na = c('N/A', ''))
+    survey_sheet |> 
+      mutate(
+        n_pets = if_else(n_pets == "two", "2", n_pets),
+        n_pets = parse_number(n_pets)
+      )
+    ```
+
+3.  I used the `fill` function like I did in exercise #2 of section 20.2.9.
+
+    ```{r}
+    roster_sheet_id <- '1LgZ0Bkg9d_NK8uTdP2uHXm07kAlwx8-Ictf8NocebIE'
+    roster_sheet <- read_sheet(roster_sheet_id) |> 
+      fill(group, subgroup)
+
+    roster_sheet
+    ```

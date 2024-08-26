@@ -2,6 +2,137 @@
 title: "Ch.12 Solutions"
 ---
 
-::: {.callout-note}
-Currently under construction.
-:::
+```{r}
+#| echo: false
+source("block_settings.R")
+```
+
+## Prerequisites
+
+------------------------------------------------------------------------
+
+```{r}
+#| message: FALSE
+library(tidyverse)
+library(nycflights13)
+```
+
+## 12.2.4 Exercises: {.unnumbered}
+
+1.  Looking at documentation you will come across a variable called `.Machine$double.eps` for which you can also read documentation. The function works by taking the different of the two supplied vectors and seeing if it is less than the smallest x s.t. 1 + x != 1 for your machine (but you can supply other tolerance levels if you want).
+
+    ```{r}
+    near(sqrt(2)^2, 2)
+    ```
+
+2.  Code below:
+
+    ```{r}
+    flights |> 
+      mutate(
+        dep_time_na = is.na(dep_time),
+        sched_dep_time_na = is.na(sched_dep_time),
+        dep_delay_na = is.na(dep_delay)
+      ) |> 
+      count(dep_time_na, sched_dep_time_na, dep_delay_na)
+    ```
+
+## 12.3.4 Exercises:
+
+1.  Made 2 separate tibbles.
+
+    ```{r}
+    #| results: 'hide'
+    # arr_delay missing but dep_delay populated
+    flights |> 
+      filter(is.na(arr_delay)&!is.na(dep_delay))
+
+    #neither arr_time nor sched_arr_time missing, but arr_delay is
+    flights |> 
+      filter(!is.na(arr_time)&!is.na(sched_arr_time)&is.na(arr_delay))
+
+    ```
+
+2.  Used the across function to get counts for every column simultaneously.
+
+    ```{r}
+    flights |> 
+      count(is.na(dep_time))
+    ```
+
+    ```{r}
+    flights |> 
+      filter(is.na(dep_time)) |> 
+      summarise(across(everything(), ~sum(is.na(.x))))
+    ```
+
+    -   We see that when `dep_time` is null, then `dep_delay`, `arr_time`, `arr_delay` and `air_time` are always null. My suspicion is that these fields are left unpopulated when the flight is cancelled.
+
+3.  I just did a plot, but some ideas for further analysis.
+
+    -   Make the size of points dependent on the number of flights.
+
+    -   Look into the fit of a regression line.
+
+    -   look if arr_delay has the same trend.
+
+    ```{r}
+    flights |> 
+      group_by(year, month, day) |> 
+      summarise(prop_cancelled = sum(is.na(dep_time))/n(),
+                avg_delay = mean(dep_delay, na.rm = TRUE),
+                .groups = 'drop') |> 
+      ggplot(aes(prop_cancelled, avg_delay))+
+      geom_point()
+    ```
+
+## 12.4.4 Exercises:
+
+1.  `sum(is.na(x))` gives the count of missing values in vector x.
+
+    -   `mean(is.na(x))` gives the proportion of missing values in vector x.
+
+2.  Both `prod()` and `min()` are analogous to `all()`.
+
+    -   since if any value in vector x is FALSE, then `prod(x)` and `min(x)` will return FALSE.
+
+## 12.5.4 Exercises:
+
+1.  Code below:
+
+    ```{r}
+    vector_0_20 <- (1:21)
+    if_else(vector_0_20%%2==0, 'EVEN', 'ODD')
+    ```
+
+2.  Code below:
+
+    ```{r}
+    days_of_week <- c('Monday', 'Tuesday', 'Wednesday', 'Thusday', 'Friday', 'Saturday', 'Sunday')
+    ifelse(days_of_week %in% c('Saturday', 'Sunday'), 'Weekend', 'Weekday')
+    ```
+
+3.  Code below:
+
+    ```{r}
+    sample_vector_x <- c(1, -4, 3, 2, 0 , -17.5)
+    print(if_else(sample_vector_x<0, -1*sample_vector_x, sample_vector_x))
+    ```
+
+4.  Can add more holidays but I am lazy:
+
+    ```{r}
+    #| results: FALSE
+    flights |> 
+      mutate(holiday_boolean = case_when(
+        month==12 & day == 25 ~ 'TRUE',
+        month == 1 & day == 1 ~ 'TRUE',
+        month == 12 & day == 31 ~ 'TRUE',
+        .default = 'FALSE'),
+      holiday = case_when(
+        month==12 & day == 25 ~ 'Christmas',
+        month == 1 & day == 1 ~ 'New Years',
+        month == 12 & day == 31 ~ 'New Years Eve',
+        .default = 'NA'
+      ))
+    ```
