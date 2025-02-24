@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+/.quarto/
+Excel Sheets
+_publish.yml
+_quarto.yml
+r4ds_2e_solutions.Rproj
+file_path
+_site
+_book
